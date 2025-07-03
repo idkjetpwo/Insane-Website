@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎰 Aura Roller Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #2f1e2e);
+      color: white;
+      text-align: center;
+      padding: 3em 1em;
+      animation: fadeIn 1.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 0.5em;
+    }
+
+    .aura {
+      font-size: 2em;
+      margin: 1.5em 0;
+      min-height: 2.5em;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .aura.animate {
+      animation: bounceFade 0.8s ease;
+    }
+
+    @keyframes bounceFade {
+      0% { transform: scale(1); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    .gradient-text {
+      background: linear-gradient(90deg, black, white);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .roll-btn, .rebirth-btn {
+      padding: 1em 2em;
+      font-size: 1.2em;
+      margin: 1em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .roll-btn {
+      background: #ff69b4;
+      box-shadow: 0 0 10px #ff69b4;
+    }
+
+    .roll-btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .roll-btn:hover:not(:disabled),
+    .rebirth-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .rebirth-btn {
+      background: #ffa500;
+      box-shadow: 0 0 10px #ffa500;
+    }
+
+    .info {
+      margin-top: 2em;
+      font-size: 1.2em;
+      line-height: 1.8em;
+    }
+
+    .requirements {
+      margin-top: 1.5em;
+      font-size: 1em;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎰 Aura Roller Game 🎉</h1>
+  <div class="aura" id="auraDisplay">✨ Roll to get your Aura! ✨</div>
+  <button class="roll-btn" id="rollBtn" onclick="rollAura()">🎲 ROLL</button>
+  <div class="info">
+    <p>🌈 Current Aura: <span id="currentAura">None</span></p>
+    <p>🏆 Best Aura: <span id="bestAura">None</span></p>
+    <p>🔁 Rebirth Stage: <span id="rebirthStage">0</span></p>
+    <p>🍀 Luck Boost: <span id="luckBoost">0%</span></p>
+    <p>🎯 Total Rolls: <span id="totalRolls">0</span></p>
+    <button class="rebirth-btn" onclick="rebirth()">💫 Rebirth</button>
+    <div class="requirements" id="rebirthReqs"></div>
+  </div>
+
+  <script>
+    const auras = [
+  { name: "ßeba Noob", rarity: "Basic", chance: 20, color: "gray", rank: 1 },
+  { name: "Bennet", rarity: "Uncommon", chance: 15, color: "green", rank: 2 },
+  { name: "Ginger Johann", rarity: "Uncommon", chance: 10, color: "green", rank: 2 },
+  { name: "Reda", rarity: "Rare", chance: 6, color: "blue", rank: 3 },
+  { name: "Sigma Magnus", rarity: "Rare", chance: 6, color: "blue", rank: 3 },
+  { name: "Sigma Leonardo", rarity: "Epic", chance: 4, color: "purple", rank: 4 },
+  { name: "pedonardo", rarity: "Epic", chance: 4, color: "purple", rank: 4 },
+  { name: "cc jojonas", rarity: "Epic", chance: 4, color: "purple", rank: 4 },
+  { name: "vaschili", rarity: "Legendary", chance: 3, color: "gold", rank: 5 },
+  { name: "Elox", rarity: "Legendary", chance: 2.5, color: "gold", rank: 5 },
+  { name: "notbenox", rarity: "Legendary", chance: 2.5, color: "gold", rank: 5 },
+  { name: "Valentin kö 8", rarity: "Mythic", chance: 1.5, color: "blackwhite", rank: 6 },
+  { name: "cleverlink", rarity: "Mythical", chance: 1.5, color: "blackwhite", rank: 6 },
+  { name: "adi pr 69", rarity: "Mythic", chance: 1.5, color: "blackwhite", rank: 6 },
+  { name: "Elox487", rarity: "Godly", chance: 1, color: "blackwhite", rank: 7 }
+];
+
+
+    let currentAura = null;
+    let bestAura = null;
+    let rebirthStage = 0;
+    let luckBoost = 0;
+    let totalRolls = 0;
+    let cooldown = false;
+
+    function saveGame() {
+      const data = { currentAura, bestAura, rebirthStage, luckBoost, totalRolls };
+      localStorage.setItem("auraGameSave", JSON.stringify(data));
+    }
+
+    function loadGame() {
+      const data = JSON.parse(localStorage.getItem("auraGameSave"));
+      if (data) {
+        currentAura = data.currentAura;
+        bestAura = data.bestAura;
+        rebirthStage = data.rebirthStage;
+        luckBoost = data.luckBoost;
+        totalRolls = data.totalRolls;
+        updateDisplay();
+      }
+    }
+
+    function rollAura() {
+      if (cooldown) return;
+      cooldown = true;
+      document.getElementById("rollBtn").disabled = true;
+      setTimeout(() => {
+        cooldown = false;
+        document.getElementById("rollBtn").disabled = false;
+      }, 1000);
+
+      totalRolls++;
+      let roll = Math.random() * 100 / (1 + luckBoost / 100);
+      let cumulative = 0;
+
+      for (let aura of auras) {
+        cumulative += aura.chance;
+        if (roll <= cumulative) {
+          currentAura = aura;
+          if (!bestAura || aura.rank > bestAura.rank) bestAura = aura;
+          break;
+        }
+      }
+
+      updateDisplay();
+      saveGame();
+    }
+
+    function updateDisplay() {
+      const auraDisplay = document.getElementById("auraDisplay");
+      auraDisplay.classList.remove("animate");
+      void auraDisplay.offsetWidth;
+      auraDisplay.classList.add("animate");
+
+      const isGradient = ["Mythic", "Mythical", "Godly"].includes(currentAura.rarity);
+      const auraNameStyled = isGradient
+        ? `<span class="gradient-text">${currentAura.name}</span>`
+        : `<span style="color:${currentAura.color}">${currentAura.name}</span>`;
+
+      auraDisplay.innerHTML = `🌈 You got: ${auraNameStyled} (${currentAura.rarity})`;
+      document.getElementById("currentAura").innerHTML = auraNameStyled;
+      document.getElementById("bestAura").innerHTML = bestAura
+        ? `<span style="color:${bestAura.color === 'blackwhite' ? 'white' : bestAura.color}">${bestAura.name}</span>`
+        : "None";
+      document.getElementById("rebirthStage").textContent = rebirthStage;
+      document.getElementById("luckBoost").textContent = `${luckBoost}%`;
+      document.getElementById("totalRolls").textContent = totalRolls;
+      updateRebirthRequirements();
+    }
+
+        function updateRebirthRequirements() {
+      const reqs = document.getElementById("rebirthReqs");
+      if (rebirthStage === 0) {
+        reqs.innerHTML = "🔓 Nächster Rebirth: <span style='color:gold'>Legendary</span> Aura opfern → <strong>+20% Luck</strong>";
+      } else if (rebirthStage === 1) {
+        reqs.innerHTML = "🔓 Nächster Rebirth: <span style='background:linear-gradient(90deg, black, white);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'>Mythic</span> Aura opfern → <strong>+50% Luck</strong>";
+      } else if (rebirthStage === 2) {
+        reqs.innerHTML = "🔓 Nächster Rebirth: <span style='background:linear-gradient(90deg, black, white);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'>Godly</span> Aura opfern → <strong>+100% Luck</strong>";
+      } else {
+        reqs.innerHTML = "✅ Maximaler Rebirth erreicht! Du bist ein wahrer Aura-Meister! 🌟";
+      }
+    }
+
+    function rebirth() {
+      if (!currentAura) {
+        alert("⚠️ Du musst zuerst eine Aura rollen!");
+        return;
+      }
+
+      const rarity = currentAura.rarity;
+
+      if (rebirthStage === 0 && rarity === "Legendary") {
+        rebirthStage = 1;
+        luckBoost = 20;
+        currentAura = null;
+        alert("🔥 Rebirth 1 abgeschlossen! Du hast jetzt +20% Luck!");
+      } else if (rebirthStage === 1 && ["Mythic", "Mythical"].includes(rarity)) {
+        rebirthStage = 2;
+        luckBoost = 50;
+        currentAura = null;
+        alert("⚡ Rebirth 2 abgeschlossen! Du hast jetzt +50% Luck!");
+      } else if (rebirthStage === 2 && rarity === "Godly") {
+        rebirthStage = 3;
+        luckBoost = 100;
+        currentAura = null;
+        alert("🌌 Rebirth 3 abgeschlossen! Du hast jetzt +100% Luck!");
+      } else {
+        alert("❌ Du brauchst eine stärkere Aura für den nächsten Rebirth!");
+        return;
+      }
+
+      updateDisplay();
+      saveGame();
+    }
+
+    // Spielstand beim Laden wiederherstellen
+    window.onload = loadGame;
+  </script>
+</body>
+</html>
